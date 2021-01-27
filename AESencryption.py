@@ -21,12 +21,15 @@ def main():
 
 def ecb_mode(file, cipher):
     with open ("encryption_ecb", "wb") as w:
-        block = bytearray(file.read(blockSize))
+        block = bytearray(16) # initialize block to 16 byte block of zeros
+        temp = file.read(blockSize)
         while len(block) == blockSize:
             nonce = cipher.nonce
             ciphertext, tag = cipher.encrypt_and_digest(block)
             w.write(ciphertext)
-            block = file.read(blockSize)
+            block = bytearray(16) # reinitialize
+            temp = file.read(blockSize)
+
         bytes_to_add = blockSize - len(block)
         # w.write(block)
         # for i in range (bytes_to_add):
