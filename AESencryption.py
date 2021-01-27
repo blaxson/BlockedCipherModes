@@ -38,8 +38,8 @@ def ecb_mode(file, cipher):
         
 def cbc_mode(file, cipher):
     with open ("encryption_cbc", "wb") as w:
-        block = file.read(16)
-        
+        temp = file.read(16)
+        block = bytearray(16)
         nonce = cipher.nonce
         ciphertext, tag = cipher.encrypt_and_digest(block)
         w.write(ciphertext)
