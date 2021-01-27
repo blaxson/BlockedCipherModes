@@ -21,7 +21,7 @@ def main():
 
 def ecb_mode(file, cipher):
     with open ("encryption_ecb", "wb") as w:
-        block = file.read(blockSize)
+        block = bytearray(file.read(blockSize))
         while len(block) == blockSize:
             nonce = cipher.nonce
             ciphertext, tag = cipher.encrypt_and_digest(block)
