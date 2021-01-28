@@ -65,7 +65,9 @@ def main():
     
     ecb_encrypt(fh, cipher)
     fh.seek(0) # reset file handler to point to beginning of file
-    cbc_encrypt(fh, cipher)
+    iv_list = [41, 21, 44, 78, 121, 11, 1, 34, 2, 56, 111, 108, 34, 29, 90, 34]
+    iv = bytearray(iv_list)
+    cbc_encrypt(fh, cipher, iv)
 
     fh.close()
 
@@ -82,12 +84,20 @@ def cbc_encrypt(file, cipher, iv):
     cbc_file = open(file.name + ".cbc", "wb")
     prev_block = iv
     next_block = get_next_block(file)
-    while block != -1:
-
+    while next_block != -1:
+        block = xor_blocks(prev_block, next_block) #xor prev ciphertext with curr plaintext
+        ciphertext = cipher.encrypt(block)
+        cbc_file.write(ciphertext)
+        prev_block = ciphertext
+        next_block = get_next_block(file)
+    cbc_file.close()
 
 """ takes in two blocks, returns the exlusive or (XOR) of the two blocks """
-def xor_blocks(block1, block2)
-
+def xor_blocks(block1, block2):
+    xor_block = bytearray(BLOCKSIZE)
+    for i in range(BLOCKSIZE):
+        xor_block[i] = block1[i] ^ block2[i]
+    return xor_block
 
 """ takes in file handler and returns the next block to be encrypted from that
     file. Pads block if not an even block """
