@@ -4,93 +4,70 @@ import sys
 import os
 
 BLOCKSIZE = 16
-"""
-def main():
-
-    filename = sys.argv[1]
-    with open (filename, 'r') as f:
-        key = get_random_bytes(16) # 16 bytes for AES-128
-        cipher = AES.new(key, AES.MODE_ECB)
-        
-        ecb_mode(f, cipher)
-        cbc_mode(f, cipher)
-
-def ecb_mode(fh, cipher):
-    with open ("encryption_ecb", "wb") as w:
-        block = bytearray(16) # initialize block to 16 byte block of zeros
-        temp = fh.read(BLOCKSIZE)
-        while len(block) == BLOCKSIZE:
-            ciphertext, tag = cipher.encrypt_and_digest(block)
-            w.write(ciphertext)
-            block = bytearray(16) # reinitialize
-            temp = fh.read(BLOCKSIZE)
-
-        bytes_to_add = BLOCKSIZE - len(block)
-        # w.write(block)
-        # for i in range (bytes_to_add):
-        #     w.write(bytes([0]))
-        
-        
-def cbc_mode(fh, cipher):
-    with open ("encryption_cbc", "wb") as w:
-        temp = fh.read(16)
-        block = bytearray(16)
-        nonce = cipher.nonce
-        ciphertext, tag = cipher.encrypt_and_digest(block)
-        w.write(ciphertext)
-
-def get_next_block(fh):
-    block = bytearray(16)
-    temp = list(fh.read(BLOCKSIZE))
-    block[:len(temp)] = temp
-    return block
-"""
-####################################################
 
 def main():
     if len(sys.argv) != 2:
-        print("usage: python3 AESencryption.py filename", file=sys.stderr)
+        print("usage: python3 AESencryption.py file", file=sys.stderr)
         return 1
     filename = sys.argv[1]
     try:
         fh = open(filename, 'rb')
     except FileNotFoundError:
         print("provide a file that already exists", file=sys.stderr)
+        sys.exit(1)
     except PermissionError:
         print("file not readable", file=sys.stderr)
-    
+        sys.exit(1)
+
+    # set up cipher to be used
     #key = get_random_bytes(16) # 16 bytes for AES-128
     key = b'Sixteen byte key'
     cipher = AES.new(key, AES.MODE_ECB)
     
-    ecb_encrypt(fh, cipher)
-    fh.seek(0) # reset file handler to point to beginning of file
+    # set up files to write to
+    ecb_file = open("ECB_" + filename, "wb")
+    cbc_file = open("CBC_" + filename, "wb")
+
+    # handle case of .bmp file
+    if filename.endswith(".bmp"):
+        bmp_header = fh.read(54) # header is 54 bytes
+        ecb_file.write(bmp_header)
+        cbc_file.write(bmp_header)
+        start_position = fh.tell() # save start position of pointer after bmp header
+    else:
+        start_position = 0
+
+    # encrypt using ecb mode
+    ecb_encrypt(fh, ecb_file, cipher)
+    
+    fh.seek(start_position) # reset pointer to beginning of encryption point
+
+    # setup iv and encrypt using cbc mode
     iv_list = [41, 21, 44, 78, 121, 11, 1, 34, 2, 56, 111, 108, 34, 29, 90, 34]
     iv = bytearray(iv_list)
-    cbc_encrypt(fh, cipher, iv)
+    cbc_encrypt(fh, cbc_file, cipher, iv)
 
+    # close files
     fh.close()
+    ecb_file.close()
+    cbc_file.close()
 
-def ecb_encrypt(file, cipher):
-    ecb_file = open(file.name + ".ecb", "wb")   
-    block = get_next_block(file)
+def ecb_encrypt(r_file, w_file, cipher):
+    block = get_next_block(r_file)
     while block != -1:
         ciphertext = cipher.encrypt(block)
-        ecb_file.write(ciphertext)
-        block = get_next_block(file)
-    ecb_file.close()
+        w_file.write(ciphertext)
+        block = get_next_block(r_file)
 
-def cbc_encrypt(file, cipher, iv):
-    cbc_file = open(file.name + ".cbc", "wb")
+def cbc_encrypt(r_file, w_file, cipher, iv):
     prev_block = iv
-    next_block = get_next_block(file)
+    next_block = get_next_block(r_file)
     while next_block != -1:
         block = xor_blocks(prev_block, next_block) #xor prev ciphertext with curr plaintext
         ciphertext = cipher.encrypt(block)
-        cbc_file.write(ciphertext)
+        w_file.write(ciphertext)
         prev_block = ciphertext
-        next_block = get_next_block(file)
-    cbc_file.close()
+        next_block = get_next_block(r_file)
 
 """ takes in two blocks, returns the exlusive or (XOR) of the two blocks """
 def xor_blocks(block1, block2):
