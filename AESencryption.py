@@ -18,7 +18,7 @@ def main():
     except PermissionError:
         print("file not readable", file=sys.stderr)
         sys.exit(1)
-
+    
     # set up cipher to be used
     #key = get_random_bytes(16) # 16 bytes for AES-128
     key = b'Sixteen byte key'
@@ -68,6 +68,20 @@ def cbc_encrypt(r_file, w_file, cipher, iv):
         w_file.write(ciphertext)
         prev_block = ciphertext
         next_block = get_next_block(r_file)
+
+#  takes a cipher_text fileStream, plainText file stream, AES cipher, and an init vector
+def cbc_decrypt(cipher_text, plain_text, cipher, iv):
+    cipher_block = get_next_block(cipher_text)
+    prev_cipher_block = iv
+    while cipher_block != -1:
+        # decrypt block using key
+        decrypt_block = cipher.decrypt(cipher_block)
+        # XOR the decrypted block and previous cipher text
+        plain_text_block = xor_blocks(prev_cipher_block, decrypt_block)
+        plain_text.write(plain_text_block)
+        # store the prev cipher block
+        prev_cipher_block = cipher_block
+        cipher_block = get_next_block(cipher_text)
 
 """ takes in two blocks, returns the exlusive or (XOR) of the two blocks """
 def xor_blocks(block1, block2):
